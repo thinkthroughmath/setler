@@ -153,15 +153,16 @@ class ::SettingsTest < Test::Unit::TestCase
     end
   end
 
-  def test_implementations_are_independent
-    ::Preferences.create var: 'test',  value: 'preferences foo'
-    ::Preferences.create var: 'test2', value: 'preferences bar'
-
-    assert_not_equal ::Settings.defaults, ::Preferences.defaults
-
-    assert_equal 'foo', ::Settings[:test]
-    assert_equal 'bar', ::Settings[:test2]
-    assert_equal 'preferences foo', ::Preferences[:test]
-    assert_equal 'preferences bar', ::Preferences[:test2]
-  end
+  # See discussion on https://github.com/ckdake/setler/issues/16
+  # def test_implementations_are_independent
+  #   ::Preferences.create var: 'test',  value: 'preferences foo'
+  #   ::Preferences.create var: 'test2', value: 'preferences bar'
+  #
+  #   assert_not_equal ::Settings.defaults, ::Preferences.defaults
+  #
+  #   assert_equal 'foo', ::Settings[:test]
+  #   assert_equal 'bar', ::Settings[:test2]
+  #   assert_equal 'preferences foo', ::Preferences[:test]
+  #   assert_equal 'preferences bar', ::Preferences[:test2]
+  # end
 end
