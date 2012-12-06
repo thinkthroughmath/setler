@@ -12,6 +12,7 @@ end
 
 require 'active_record'
 require 'test/unit'
+require 'mocha/setup'
 
 require_relative '../lib/setler'
 
