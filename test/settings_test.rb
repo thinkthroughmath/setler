@@ -111,6 +111,14 @@ class ::SettingsTest < Test::Unit::TestCase
     assert_nil user.preferences.likes_bacon
   end
 
+  def test_setler_model_being_used
+    user = User.create name: 'user 1'
+
+    ::Preferences.expects(:where).returns(stub)
+
+    user.preferences.likes_bacon = true
+  end
+
   def test_user_settings_all
     ::Settings.destroy_all
     user = User.create name: 'user 1'
