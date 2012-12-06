@@ -52,7 +52,11 @@ module Setler
     end
 
     def self.thing_scoped
-      self.where(thing_type: nil, thing_id: nil)
+      if defined?(@setler_active_record_class)
+        @setler_active_record_class.where(thing_type: nil, thing_id: nil)
+      else
+        self.where(thing_type: nil, thing_id: nil)
+      end
     end
 
   end
