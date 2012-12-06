@@ -13,6 +13,7 @@ end
 require 'active_record'
 require 'test/unit'
 require 'mocha/setup'
+require 'pry'
 
 require_relative '../lib/setler'
 
