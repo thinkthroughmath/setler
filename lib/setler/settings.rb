@@ -1,10 +1,22 @@
 module Setler
   class Settings < ActiveRecord::Base
+    # Use a Class Instance Variable for defaults. This prevents bleed between different classes that use
+    # Setler::Settings. We can't use a cattr_accessor style class variable (@@defaults) here because it
+    # bleeds between classes, and we can't use a class variable here (def self.defaults; @defaults; end)
+    # because it doesn't share as much as it should.
+    class <<self
+      def inherited(other)
+        other.instance_eval { initialize_class }
+        super
+      end
+      def initialize_class
+        @defaults = {}.with_indifferent_access
+      end
+      attr_accessor :defaults
+    end
+
     serialize :value
     self.abstract_class = true
-
-    cattr_accessor :defaults
-    @@defaults = {}.with_indifferent_access
 
     # Get and Set variables when the calling method is the variable name
     def self.method_missing(method, *args, &block)
