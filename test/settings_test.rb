@@ -111,14 +111,6 @@ class ::SettingsTest < Test::Unit::TestCase
     assert_nil user.preferences.likes_bacon
   end
 
-  def test_setler_model_being_used
-    user = User.create name: 'user 1'
-
-    ::Preferences.expects(:where).returns(stub)
-
-    user.preferences.likes_bacon = true
-  end
-
   def test_user_settings_all
     ::Settings.destroy_all
     user = User.create name: 'user 1'
@@ -131,7 +123,7 @@ class ::SettingsTest < Test::Unit::TestCase
   end
 
   def test_user_settings_override_defaults
-    ::Settings.defaults[:foo] = false
+    ::Preferences.defaults[:foo] = false
     user = User.create name: 'user 1'
     assert !user.preferences.foo
     user.preferences.foo = true

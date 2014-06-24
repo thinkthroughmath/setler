@@ -34,7 +34,7 @@ module Setler
 
     def self.[](var)
       the_setting = thing_scoped.find_by_var(var.to_s)
-      the_setting.present? ? the_setting.value : @@defaults[var]
+      the_setting.present? ? the_setting.value : scoped_defaults[var]
     end
 
     def self.[]=(var, value)
@@ -59,8 +59,16 @@ module Setler
       end
     end
 
+    def self.scoped_defaults
+      if defined?(@setler_active_record_class)
+        @setler_active_record_class.defaults
+      else
+        defaults
+      end
+    end
+
     def self.all
-      @@defaults.merge(Hash[thing_scoped.all.collect{ |s| [s.var, s.value] }])
+      scoped_defaults.merge(Hash[thing_scoped.all.collect{ |s| [s.var, s.value] }])
     end
 
     def self.thing_scoped
