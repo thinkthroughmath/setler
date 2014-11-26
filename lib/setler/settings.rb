@@ -1,11 +1,23 @@
 module Setler
   class Settings < ActiveRecord::Base
+    # Use a Class Instance Variable for defaults. This prevents bleed between different classes that use
+    # Setler::Settings. We can't use a cattr_accessor style class variable (@@defaults) here because it
+    # bleeds between classes, and we can't use a class variable here (def self.defaults; @defaults; end)
+    # because it doesn't share as much as it should.
+    class <<self
+      def inherited(other)
+        other.instance_eval { initialize_class }
+        super
+      end
+      def initialize_class
+        @defaults = {}.with_indifferent_access
+      end
+      attr_accessor :defaults
+    end
+
     serialize :value
     self.abstract_class = true
-    
-    cattr_accessor :defaults
-    @@defaults = {}.with_indifferent_access
-    
+
     # Get and Set variables when the calling method is the variable name
     def self.method_missing(method, *args, &block)
       if respond_to?(method)
@@ -22,7 +34,7 @@ module Setler
 
     def self.[](var)
       the_setting = thing_scoped.find_by_var(var.to_s)
-      the_setting.present? ? the_setting.value : @@defaults[var]
+      the_setting.present? ? the_setting.value : scoped_defaults[var]
     end
 
     def self.[]=(var, value)
@@ -34,7 +46,7 @@ module Setler
         var.to_s,
         @object.try(:class).try(:base_class).try(:to_s),
         @object.try(:id)
-      ).update_attribute(:value, value)
+      ).update_attributes({ :value => value })
     end
 
     def self.destroy(var_name)
@@ -46,15 +58,26 @@ module Setler
         raise SettingNotFound, "Setting variable \"#{var_name}\" not found"
       end
     end
-    
+
+    def self.scoped_defaults
+      if defined?(@setler_active_record_class)
+        @setler_active_record_class.defaults
+      else
+        defaults
+      end
+    end
+
     def self.all
-      @@defaults.merge(Hash[thing_scoped.all.collect{ |s| [s.var, s.value] }])
+      scoped_defaults.merge(Hash[thing_scoped.all.collect{ |s| [s.var, s.value] }])
     end
-    
+
     def self.thing_scoped
-      self.where(thing_type: nil, thing_id: nil)
+      if defined?(@setler_active_record_class)
+        @setler_active_record_class.where(thing_type: nil, thing_id: nil)
+      else
+        self.where(thing_type: nil, thing_id: nil)
+      end
     end
-    
+
   end
-  
 end
