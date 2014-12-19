@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class ::SettingsTest < Test::Unit::TestCase
+class ::SettingsTest < Minitest::Test
   setup_db
 
   def setup
@@ -10,7 +10,10 @@ class ::SettingsTest < Test::Unit::TestCase
 
   def teardown
     ::Settings.delete_all
+    ::Settings.defaults = {}.with_indifferent_access
+
     ::Preferences.delete_all
+    ::Preferences.defaults = {}.with_indifferent_access
   end
 
   def test_defaults
@@ -30,6 +33,13 @@ class ::SettingsTest < Test::Unit::TestCase
   def test_get
     assert_equal 'foo', ::Settings.test
     assert_equal 'bar', ::Settings.test2
+  end
+
+  def test_get_presence
+    ::Settings.truthy = [1,2,3]
+    ::Settings.falsy = []
+    assert_equal true, ::Settings.truthy?
+    assert_equal false, ::Settings.falsy?
   end
 
   def test_get_with_array_syntax
@@ -79,12 +89,12 @@ class ::SettingsTest < Test::Unit::TestCase
     assert_equal 0.02, ::Settings.float * 2
   end
 
-  def test_all
-    assert_equal({ "test2" => "bar", "test" => "foo" }, ::Settings.all)
+  def test_all_settings
+    assert_equal({ "test2" => "bar", "test" => "foo" }, ::Settings.all_settings)
   end
 
   def test_destroy
-    assert_not_nil ::Settings.test
+    refute_nil ::Settings.test
     ::Settings.destroy :test
     assert_nil ::Settings.test
   end
@@ -114,12 +124,13 @@ class ::SettingsTest < Test::Unit::TestCase
   def test_user_settings_all
     ::Settings.destroy_all
     user = User.create name: 'user 1'
+    assert_equal ::Preferences.all_settings, user.preferences.all_settings
     user.preferences.likes_bacon = true
     user.preferences.really_likes_bacon = true
-    assert user.preferences.all['likes_bacon']
-    assert !::Settings.all['likes_bacon']
-    assert user.preferences.all['really_likes_bacon']
-    assert !::Settings.all['really_likes_bacon']
+    assert user.preferences.all_settings['likes_bacon']
+    assert !::Settings.all_settings['likes_bacon']
+    assert user.preferences.all_settings['really_likes_bacon']
+    assert !::Settings.all_settings['really_likes_bacon']
   end
 
   def test_user_settings_override_defaults
@@ -149,21 +160,26 @@ class ::SettingsTest < Test::Unit::TestCase
   # end
 
   def test_destroy_when_setting_does_not_exist
-    assert_raise Setler::SettingNotFound do
+    assert_raises Setler::SettingNotFound do
       ::Settings.destroy :not_a_setting
     end
   end
 
-  # See discussion on https://github.com/ckdake/setler/issues/16
-  # def test_implementations_are_independent
-  #   ::Preferences.create var: 'test',  value: 'preferences foo'
-  #   ::Preferences.create var: 'test2', value: 'preferences bar'
-  #
-  #   assert_not_equal ::Settings.defaults, ::Preferences.defaults
-  #
-  #   assert_equal 'foo', ::Settings[:test]
-  #   assert_equal 'bar', ::Settings[:test2]
-  #   assert_equal 'preferences foo', ::Preferences[:test]
-  #   assert_equal 'preferences bar', ::Preferences[:test2]
-  # end
+  def test_implementations_are_independent
+    ::Preferences.create var: 'test',  value: 'preferences foo'
+    ::Preferences.create var: 'test2', value: 'preferences bar'
+
+    refute_match ::Settings.all_settings, ::Preferences.all_settings
+
+    assert_equal 'foo', ::Settings[:test]
+    assert_equal 'bar', ::Settings[:test2]
+    assert_equal 'preferences foo', ::Preferences[:test]
+    assert_equal 'preferences bar', ::Preferences[:test2]
+  end
+
+  def test_defaults_are_independent
+    ::Settings.defaults[:foo] = false
+
+    refute_equal ::Settings.defaults, ::Preferences.defaults
+  end
 end

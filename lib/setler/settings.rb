@@ -1,3 +1,5 @@
+require 'rails/version'
+
 module Setler
   class Settings < ActiveRecord::Base
     # Use a Class Instance Variable for defaults. This prevents bleed between different classes that use
@@ -18,6 +20,23 @@ module Setler
     serialize :value
     self.abstract_class = true
 
+    def self.defaults
+      @defaults ||= {}.with_indifferent_access
+    end
+
+    def self.defaults=(defaults)
+      @defaults = defaults.with_indifferent_access
+    end
+
+    if Rails::VERSION::MAJOR == 3
+      attr_accessible :var, :value
+
+      def self.all
+        warn '[DEPRECATED] Setler::Settings#all is deprecated. Please use #all_settings'
+        all_settings
+      end
+    end
+
     # Get and Set variables when the calling method is the variable name
     def self.method_missing(method, *args, &block)
       if respond_to?(method)
@@ -26,6 +45,8 @@ module Setler
         method_name = method.to_s
         if method_name.ends_with?("=")
           self[method_name[0..-2]] = args.first
+        elsif method_name.ends_with?("?")
+          self[method_name[0..-2]].present?
         else
           self[method_name]
         end
@@ -42,10 +63,10 @@ module Setler
       # thing_scoped.find_or_create_by_var(method_name[0..-2]) should work but doesnt for some reason
       # When @object is present, thing_scoped sets the where scope for the polymorphic association
       # but the find_or_create_by wasn't using the thing_type and thing_id
-      thing_scoped.find_or_create_by_var_and_thing_type_and_thing_id(
-        var.to_s,
-        @object.try(:class).try(:base_class).try(:to_s),
-        @object.try(:id)
+      thing_scoped.find_or_create_by(
+        var: var.to_s,
+        thing_type: @object.try(:class).try(:base_class).try(:to_s),
+        thing_id: @object.try(:id)
       ).update_attributes({ :value => value })
     end
 
@@ -67,7 +88,7 @@ module Setler
       end
     end
 
-    def self.all
+    def self.all_settings
       scoped_defaults.merge(Hash[thing_scoped.all.collect{ |s| [s.var, s.value] }])
     end
 
